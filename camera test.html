@@ -1,0 +1,153 @@
+<html>
+  <head>
+    <title>camera test</title>
+  </head>
+  <body>
+    <div class="camera">
+      <video id="camera-video">
+        <source>
+      </video>
+      <canvas class="camera-canvas" id="camera-canvas" width="2592" height="1944"></canvas>
+    </div>
+    <div class="options">
+      <div class="options-capture-btn">
+        <button type="button" onclick="init()">初始化相机</button>
+        &nbsp;&nbsp;
+        <button type="button" onclick="onCapture()">拍照</button>
+        &nbsp;&nbsp;
+        <button type="button" onclick="stopStream()">停止拍照</button>
+      </div>
+      <div class="photos-list">
+      </div>
+    </div>
+  </body>
+  <style>
+    .camera {
+      width: 100%;
+      height: 620px;
+    }
+    #camera-video{
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      margin: 0 auto;
+    }
+    .camera-canvas{
+      display: none;
+    }
+    .options{
+      width: 100%;
+      height: 250px;
+    }
+    .options-capture-btn{
+      display: flex;
+      width: 100%;
+      height: 50px;
+      justify-content: center;
+      align-items: center;
+    }
+    .photos-list{
+      position: relative;
+      display: flex;
+      overflow-x: auto;
+    }
+    .photos-list >img{
+      display: inline-block;
+      width: auto;
+      height: 200px;
+      margin-right: 10px;
+    }
+  </style>
+  <script>
+    var cameraStream = null
+    async function getStream () {
+      if(navigator.mediaDevices){
+        let devices = await navigator.mediaDevices.enumerateDevices()
+        console.log('devices',devices)
+        let videoDevices = devices.filter(i => i.kind === 'videoinput')
+        let cns = await navigator.mediaDevices.getSupportedConstraints()
+        console.log('cns',cns)
+        let deviceId = await getDevice(videoDevices)
+        console.log('deviceId', deviceId)
+        // 2592x1944，3264x2448
+        let stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: false, 
+          video: deviceId ? { 
+            deviceId,
+            width: { ideal: 3264 },
+            height: { ideal: 2448 }
+           } : {
+            width: { ideal: 3264 },
+            height: { ideal: 2448 }
+           }
+        })
+        console.log('stream',stream)
+        cameraStream = stream
+        return stream
+      }
+      return null
+    }
+    async function stopStream () {
+      if(cameraStream){
+        cameraStream.getTracks().forEach(t => t.stop())
+        cameraStream = null
+      }
+    }
+    async function getDevice (cameras) {
+      if(cameras && cameras.length > 0){
+        let gpCamera = cameras.find((i) => {
+          return i.label.indexOf('USB Camera') !== -1 || i.label.indexOf('S1010') !== -1 || i.label.indexOf('YL800') !== -1
+        })
+        if (gpCamera) {
+          return gpCamera?.deviceId
+        } else {
+          return cameras[0]?.deviceId
+        }
+      } else {
+        return null
+      }
+    }
+    async function onCapture(e){
+      console.log(e)
+      let videoRef =  document.getElementById('camera-video')
+      let canvasRef = document.getElementById('camera-canvas')
+      let photoContext = canvasRef.getContext('2d')
+      if(photoContext && videoRef) {
+        // canvas画图
+        photoContext.drawImage(videoRef, 0, 0, 2592, 1944)
+        // 获取图片base64链接
+        let image = canvasRef.toDataURL('image/png')
+        this.addImageToList(image)
+      }
+    }
+    async function addImageToList(image){
+      if(image){
+        let imgEl = document.createElement('img')
+        imgEl.setAttribute('src', image)
+        let listEl = document.getElementsByClassName('photos-list')
+        if(listEl.length > 0){
+          listEl[0].appendChild(imgEl)
+        }
+      }
+    }
+    async function init () {
+      let cameraVideoEl = document.getElementById('camera-video')
+      let stream = await getStream()
+      console.log('init', stream)
+      if(stream){
+        cameraVideoEl.srcObject = stream
+        cameraVideoEl.play()
+        let settings = stream.getVideoTracks()[0].getSettings();
+        let width = settings.width;
+        let height = settings.height;
+        console.log('settings', settings);
+        console.log('Actual width of the camera video: ' + width + 'px');
+        console.log('Actual height of the camera video:' + height + 'px');
+        const capabilities = stream.getVideoTracks()[0].getCapabilities();
+        const maxWidth = capabilities.width.max;
+        const maxHeight = capabilities.height.max;
+        console.log("最大分辨率：", maxWidth, "x", maxHeight);
+      }
+    }
+  </script>
+</html>

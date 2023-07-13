@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html>
+<head></head>
+<body>
+</body>
+<script>
+  function recordPlay(){
+    navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(function(stream) {
+      // 创建 AudioContext 对象
+      var audioContext = new AudioContext();
+      // 创建 MediaStreamAudioSourceNode 对象
+      var sourceNode = audioContext.createMediaStreamSource(stream);
+      // 创建 MediaStreamAudioDestinationNode 对象
+      var destinationNode = audioContext.createMediaStreamDestination();
+      // 将节点连接到 AudioContext 对象中
+      sourceNode.connect(destinationNode);
+      // 创建 MediaRecorder 对象，用于录制音频
+      var mediaRecorder = new MediaRecorder(destinationNode.stream);
+      // 开始录制音频
+      mediaRecorder.start();
+      
+      // 停止录制音频
+      setTimeout(function() {
+        console.log('========stop recorder')
+        mediaRecorder.stop();
+        // playRecorder(mediaRecorder.stream)
+        playStream(mediaRecorder.stream)
+        sourceNode.disconnect();
+        destinationNode.disconnect();
+        audioContext.close();
+      }, 10000);
+    })
+    .catch(function(error) {
+      console.log('Error: ' + error);
+    });
+  }
+  function playRecorder(blobRecorder){
+    // 将音频输出到音响上
+    var audio = new Audio();
+    audio.src = URL.createObjectURL(blobRecorder);
+    audio.play();
+  }
+  function livePlay(){
+    navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(function(stream) {
+      // 创建 AudioContext 对象
+      var audioContext = new AudioContext();
+      // 创建 MediaStreamAudioSourceNode 对象
+      var sourceNode = audioContext.createMediaStreamSource(stream);
+      // 创建 MediaStreamAudioDestinationNode 对象
+      var destinationNode = audioContext.createMediaStreamDestination();
+      // 将节点连接到 AudioContext 对象中
+      sourceNode.connect(destinationNode);
+      playStream(destinationNode.stream);
+      
+      // 停止录制音频
+      setTimeout(function() {
+        console.log('========stop recorder')
+        sourceNode.disconnect();
+        destinationNode.disconnect();
+        audioContext.close();
+      }, 30000);
+    })
+    .catch(function(error) {
+      console.log('Error: ' + error);
+    });
+  }
+  function playStream(stream){
+    // 将音频输出到音响上
+    var audio = new Audio();
+    audio.srcObject = stream;
+    audio.play();
+  }
+  // recordPlay()
+  //
+  livePlay()
+</script>
+</html>
