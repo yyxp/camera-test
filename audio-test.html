@@ -3,21 +3,54 @@
 <html>
 <head></head>
 <body>
+  <button onClick="downloadClick">下载</button>
 </body>
 <script>
+  // audio stream 流
+  let audioStream = null
   function recordPlay(){
     navigator.mediaDevices.getUserMedia({ audio: true })
     .then(function(stream) {
+      // 缓存录音数据
+      let chunks = []
+
       // 创建 AudioContext 对象
       var audioContext = new AudioContext();
+
       // 创建 MediaStreamAudioSourceNode 对象
       var sourceNode = audioContext.createMediaStreamSource(stream);
+
       // 创建 MediaStreamAudioDestinationNode 对象
       var destinationNode = audioContext.createMediaStreamDestination();
+
       // 将节点连接到 AudioContext 对象中
       sourceNode.connect(destinationNode);
+
       // 创建 MediaRecorder 对象，用于录制音频
       var mediaRecorder = new MediaRecorder(destinationNode.stream);
+
+      // 监听数据可用事件
+      mediaRecorder.addEventListener("dataavailable", function(event) {
+        chunks.push(event.data)
+      })
+
+      // 监听停止事件
+      mediaRecorder.addEventListener("stop", function() {
+        // 将数据转换为Blob对象
+        const blob = new Blob(chunks, { type: "audio/ogg; codecs=opus" })
+
+        // 创建下载链接并模拟点击下载
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url;
+        a.download = "recording.ogg"
+        document.body.appendChild(a)
+        a.click()
+
+        // 释放URL对象
+        URL.revokeObjectURL(url)
+      });
+
       // 开始录制音频
       mediaRecorder.start();
       
@@ -26,11 +59,10 @@
         console.log('========stop recorder')
         mediaRecorder.stop();
         // playRecorder(mediaRecorder.stream)
-        playStream(mediaRecorder.stream)
         sourceNode.disconnect();
         destinationNode.disconnect();
         audioContext.close();
-      }, 10000);
+      }, 20000);
     })
     .catch(function(error) {
       console.log('Error: ' + error);
@@ -45,12 +77,16 @@
   function livePlay(){
     navigator.mediaDevices.getUserMedia({ audio: true })
     .then(function(stream) {
+      this.audioStream = stream
       // 创建 AudioContext 对象
       var audioContext = new AudioContext();
+
       // 创建 MediaStreamAudioSourceNode 对象
       var sourceNode = audioContext.createMediaStreamSource(stream);
+
       // 创建 MediaStreamAudioDestinationNode 对象
       var destinationNode = audioContext.createMediaStreamDestination();
+
       // 将节点连接到 AudioContext 对象中
       sourceNode.connect(destinationNode);
       playStream(destinationNode.stream);
@@ -73,8 +109,12 @@
     audio.srcObject = stream;
     audio.play();
   }
-  // recordPlay()
-  //
-  livePlay()
+  function downloadClick () {
+
+  }
+  // 录取麦克风音频
+  recordPlay()
+  //实时录取麦克风音频并播放
+  // livePlay()
 </script>
 </html>
